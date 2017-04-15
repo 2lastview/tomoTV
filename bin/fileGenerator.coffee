@@ -38,10 +38,9 @@ __createTsFiles = (videoPaths, cb) ->
 
       .input videoPath
       .output tmpFile
-      .videoCodec "copy"
+      .videoCodec "libx264"
       .audioCodec "copy"
-      .outputOptions "-bsf:v h264_mp4toannexb"
-      .outputOptions "-f mpegts"
+      .size "640x?"
       .run()
   , (err) ->
     if err?
@@ -68,12 +67,62 @@ __concat = (videoPaths, outputPath, cb) ->
 
     .input(inputNamesFormatted)
     .output(outputPath)
-    .outputOption "-strict -2"
-    .outputOption "-bsf:a aac_adtstoasc"
     .videoCodec "copy"
+    .audioCodec "copy"
     .run()
 
-_mergeVideos = (videoPaths, outputPath) ->
+# ------------- meta ------------- #
+
+__getVideoMeta = (videoPaths, mergedPath, cb) ->
+  meta = []
+  mergedMeta = null
+  async.eachSeries videoPaths, (videoPath, asyncCb) ->
+    ffmpeg.ffprobe videoPath, (err, metadata) ->
+      if err?
+        return asyncCb err
+
+      if videoPath isnt mergedPath
+        meta.push metadata.format
+      else
+        mergedMeta = metadata.format
+      asyncCb()
+  , (err) ->
+    if err?
+      return cb err
+
+    cb null, {singleFiles: meta, mergedFile: mergedMeta}
+
+__processVideoMeta = (meta) ->
+
+  # process meta single parts and aggregate data
+  cutsTotal = 0
+  cuts = []
+  for m in meta.singleFiles
+
+    # remove path from filename
+    m.filename = path.basename m.filename
+
+    # analyze filename: get season, get episode
+    m.extracted = ptn m.filename
+
+    # create cuts
+    cutsTotal += m.duration
+    cuts.push cutsTotal
+
+    # TODO: enrich data with some api
+
+  # process merged metadata
+  # remove path from filename
+  meta.mergedFile.filename = path.basename meta.mergedFile.filename
+
+  # add aggregated data from loop
+  meta.cuts = cuts
+
+  return meta
+
+# ------------- commands ------------- #
+
+merge = (videoPaths, outputPath) ->
   if not outputPath?
     outputPath = "./merged.mp4"
 
@@ -85,53 +134,19 @@ _mergeVideos = (videoPaths, outputPath) ->
       if err?
         return console.log "ERROR in __concat:", err.message
 
-# ------------- meta ------------- #
-
-__getVideoMeta = (videoPaths, cb) ->
-  meta = []
-  async.eachSeries videoPaths, (videoPath, asyncCb) ->
-    ffmpeg.ffprobe videoPath, (err, metadata) ->
-      if err?
-        return asyncCb err
-
-      meta.push metadata.format
-      asyncCb()
-  , (err) ->
-    if err?
-      return cb err
-
-    cb null, meta
-
-__processVideoMeta = (meta) ->
-  for m in meta
-
-    # remove path from filename
-    m.filename = path.basename m.filename
-
-    # analyze filename: get season, get episode
-    m.extracted = ptn m.filename
-
-    # TODO: enrich data with some api
-
-  return meta
-
-_getMetaJson = (videoPaths, outputPath) ->
-  __getVideoMeta videoPaths, (err, meta) ->
+meta = (videoPaths, mergedPath, outputPath) ->
+  __getVideoMeta videoPaths, mergedPath, (err, meta) ->
     if err?
       return console.log "ERROR in __getMeta:", err.message
 
     meta = __processVideoMeta meta
 
-    fs.writeFileSync outputPath, JSON.stringify(meta, false, 4)
+    if outputPath?
+      fs.writeFileSync outputPath, JSON.stringify(meta, false, 4)
+    else
+      console.log JSON.stringify meta, false, 4
+
     console.log "finished generating meta file at #{outputPath}"
-
-# ------------- commands ------------- #
-
-merge = (paths, outputPath) ->
-  _mergeVideos paths, outputPath
-
-meta = (paths, outputPath) ->
-  _getMetaJson paths, outputPath
 
 # ------------- commander ------------- #
 
@@ -147,11 +162,17 @@ commander
 .command "merge"
 .description "merge all video files to one single video"
 .action ->
+
+  #
   if commander.folder?
     files = fs.readdirSync commander.folder
     merge _fullPaths(commander.folder, files), commander.output
+
+  #
   else if commander.paths?.length > 0
     merge commander.paths, commander.output
+
+  #
   else
     files = fs.readdirSync __dirname
     merge _fullPaths(__dirname, files), commander.output
@@ -159,15 +180,22 @@ commander
 commander
 .command "meta"
 .description "get meta information on all videos"
-.action ->
+.option "-mp, --merged_path <path>", "Path to the merged video"
+.action (command) ->
+
+  #
   if commander.folder?
     files = fs.readdirSync commander.folder
-    meta _fullPaths(commander.folder, files), commander.output
+    meta _fullPaths(commander.folder, files), command.merged_path, commander.output
+
+  #
   else if commander.paths?.length > 0
-    meta commander.paths, commander.output
+    meta commander.paths, command.merged_path, commander.output
+
+  #
   else
     files = fs.readdirSync __dirname
-    meta _fullPaths(__dirname, files), commander.output
+    meta _fullPaths(__dirname, files), command.merged_path, commander.output
 
 commander.parse process.argv
 
