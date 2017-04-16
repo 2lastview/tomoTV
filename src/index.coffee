@@ -34,15 +34,12 @@ client.add magnet, (torrent) ->
     videoElem.currentTime = diff %% fullDuration
 
     videoElem.addEventListener "timeupdate", ->
-      changed = false
       for cut, i in meta.cuts
         if videoElem.currentTime < cut
           CURRENT_SINGLE_FILE = i
-          changed = true
+          setCurrentSingleFileInfo meta.singleFiles[CURRENT_SINGLE_FILE]
           break
 
-      if changed
-        setCurrentSingleFileInfo meta.singleFiles[CURRENT_SINGLE_FILE]
 
   torrent.on "download", ->
     downloaded.innerHTML = torrent.downloaded / 1024 + " Kb"
