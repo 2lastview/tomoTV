@@ -1,8 +1,11 @@
 videostream = require "videostream"
 WebTorrent = require "webtorrent"
-client = new WebTorrent()
 request = require "request"
 moment = require "moment"
+
+client = new WebTorrent
+  downloadLimit: 1024 * 100
+  uploadLimit: 1024 * 100
 
 magnet = "magnet:?xt=urn:btih:13366621b1c346fc72fae77ba00f5303d9544fef&dn=merged.mp4&tr=udp%3A%2F%2Fexplodie.org%3A6969&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.empire-js.us%3A1337&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337&tr=wss%3A%2F%2Ftracker.btorrent.xyz&tr=wss%3A%2F%2Ftracker.fastcast.nz&tr=wss%3A%2F%2Ftracker.openwebtorrent.com"
 
@@ -17,6 +20,7 @@ setCurrentSingleFileInfo = (singleFile) ->
   document.querySelector("#size").innerHTML = singleFile.size / 1024 + " Kb"
 
 client.add magnet, (torrent) ->
+  torrent.deselect 0, torrent.pieces.length - 1, false
 
   videoFile = torrent.files[0]
   metaFile = torrent.files[1]
@@ -39,7 +43,6 @@ client.add magnet, (torrent) ->
           CURRENT_SINGLE_FILE = i
           setCurrentSingleFileInfo meta.singleFiles[CURRENT_SINGLE_FILE]
           break
-
 
   torrent.on "download", ->
     downloaded.innerHTML = torrent.downloaded / 1024 + " Kb"
