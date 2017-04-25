@@ -5,18 +5,17 @@
     <title>Title</title>
 </head>
 <body>
-    <video id="video" controls autoplay loop></video>
-    <h2>SHOW INFO:</h2>
+
+<video id="video" controls autoplay style="width: 480px"></video>
+
+<h2>SHOW INFO: {{name}}</h2>
     <pre>
         Title: <span id="title"></span><br/>
         Season: <span id="season"></span><br/>
         Episode: <span id="episode"></span><br/>
-        Duration: <span id="duration"></span><br/>
-        Size: <span id="size"></span><br/>
-        Bit Rate: <span id="bitate"></span><br/>
     </pre>
 
-    <h2>DOWNLOAD INFO:</h2>
+<h2>DOWNLOAD INFO:</h2>
     <pre>
         Downloaded: <span id="downloaded"></span><br/>
         Download Speed: <span id="downloadSpeed"></span><br/>
@@ -24,11 +23,15 @@
         Strategy: <span id="strategy"></span><br/>
     </pre>
 
-    <h2>UPLOAD INFO:</h2>
+<h2>UPLOAD INFO:</h2>
     <pre>
         Uploaded: <span id="uploaded"></span><br/>
         Upload Speed: <span id="uploadSpeed"></span><br/>
     </pre>
-    <script src="public"></script>
+
+<span id="channelIndex" style="display: none">{{channelIndex}}</span>
+
+<script src="js"></script>
+
 </body>
 </html>
