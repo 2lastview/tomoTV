@@ -8,7 +8,7 @@ channelIndex = parseInt document.querySelector("#channelIndex").innerText
 channel = channels[channelIndex]
 
 client = new WebTorrent
-  downloadLimit: 1024 * 700
+  downloadLimit: 1024 * 500
   uploadLimit: 1024 * 100
 
 magnet = channel.magnetURI
@@ -23,6 +23,8 @@ setCurrentSingleFileInfo = (video) ->
   document.querySelector("#episode").innerHTML = video.extracted.episode
 
 client.add magnet, (torrent) ->
+  console.log torrent
+
   torrent.deselect 0, torrent.pieces.length - 1, false
 
   diff = (moment(new Date()).diff(moment(STREAM_START))) / 1000

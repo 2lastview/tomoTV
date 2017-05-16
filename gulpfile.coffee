@@ -21,7 +21,7 @@ gulp.task "default", (done) ->
   runSequence "config", "coffee", "template-generator", done
 
 gulp.task "config", ->
-  request "http://localhost:2000/channels", (err, res, body) ->
+  request "http://5.79.64.19:4000/channels", (err, res, body) ->
     if err?
       throw err
 
